@@ -8,9 +8,63 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F, warning=F, message=F)
 require(tidyverse)
+require(stargazer)
 ```
 
 ```{r}
-dig <- read_csv("dig.csv")
+dig <- read_csv("dig.csv") %>% 
+  janitor::clean_names()
 ```
+
+```{r tab1, results = 'asis'}
+tab1 <- dig %>% 
+  group_by(trtmt) %>% 
+  summarize(
+    "N" = n(),
+    "Age (yr) - mean" = mean(age),
+    "Age (yr) - SD" = sd(age),
+    "Ejection fraction - mean" = mean(ejf_per),
+    "Ejection fraction - SD" = sd(ejf_per),
+    "Median duration of CHF - mo" = median(chfdur, na.rm =T),
+    "Female Sex" = sum(sex == 2)/n() * 100,
+    "Nonwhite Race" = sum(race == 2)/n() * 100,
+    "Age >70 yr" = sum(age > 70)/n() * 100,
+    "Method - ventriculography" = sum(ejfmeth == 1)/n() * 100,
+    "Method - echocardiography" = sum(ejfmeth == 3)/n() * 100,
+    "Method - angiography" = sum(ejfmeth == 2)/n() * 100,
+    "Cardiothoracic ratio >0.55" = sum(chestx > 0.55, na.rm =T)/n() * 100,
+    "NYHA class - I" = sum(functcls == 1, na.rm =T)/n() * 100,
+    "NYHA class - II" = sum(functcls == 2, na.rm =T)/n() * 100,
+    "NYHA class - III" = sum(functcls == 3, na.rm =T)/n() * 100,
+    "NYHA class - IV" = sum(functcls == 4, na.rm =T)/n() * 100,
+    "No. of signs - 0" = sum(nsym == 0)/n() * 100,
+    "No. of signs - 1" = sum(nsym == 1)/n() * 100,
+    "No. of signs - 2" = sum(nsym == 2)/n() * 100,
+    "No. of signs - 3" = sum(nsym == 3)/n() * 100,
+    "No. of signs - 4+" = sum(nsym >= 4)/n() * 100,
+    "History - Previous myocardial infarction" = sum(prevmi == 1, na.rm =T)/n() * 100,
+    "History - Current anigma" = sum(angina == 1, na.rm =T)/n() * 100,
+    "History - Diabetes" = sum(diabetes == 1)/n() * 100,
+    "History - Hypertension" = sum(hyperten == 1, na.rm =T)/n() * 100,
+    "Previous digoxin use" = sum(diguse == 1)/n() * 100,
+    "Cause - Ischemic" = sum(chfetiol == 1, na.rm =T)/n() * 100,
+    "Cause - Nonischemic" = sum(chfetiol != 1, na.rm =T)/n() * 100,
+    "Cause - Nonischemic - Idiopathic" = sum(chfetiol == 4, na.rm =T)/n() * 100,
+    "Cause - Nonischemic - Hypertensive" = sum(chfetiol == 2, na.rm =T)/n() * 100,
+    "Cause - Nonischemic - Other" = sum(chfetiol %in% c(3, 5, 6), na.rm =T)/n() * 100,
+    "Medications - Diuretics" = sum(diuretk == 1 | diuret == 1, na.rm =T)/n() * 100,
+    "Medications - ACE inhibitors" = sum(aceinhib == 1)/n() * 100,
+    "Medications - Nitrates" = sum(nitrates == 1)/n() * 100,
+    "Medications - Other vasodilators" = sum(vasod == 1, na.rm =T)/n() * 100,
+    "Dose - 0.125 mg" = sum(digdose == 0.125, na.rm =T)/n() * 100,
+    "Dose - 0.250 mg" = sum(digdose == 0.250, na.rm =T)/n() * 100,
+    "Dose - 0.375 mg" = sum(digdose == 0.375, na.rm =T)/n() * 100,
+    "Dose - 0.500 mg" = sum(digdose == 0.500, na.rm =T)/n() * 100
+  ) %>% round(1) %>% t()
+colnames(tab1) <- c("Placebo", "Digoxin")
+tab1[,c(2,1)] %>% 
+  stargazer(header = F, summary = F, digits = 1)
+```
+
+
 
