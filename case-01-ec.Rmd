@@ -9,6 +9,8 @@ output: pdf_document
 knitr::opts_chunk$set(echo = F, warning=F, message=F)
 require(tidyverse)
 require(stargazer)
+require(survival)
+require(survminer)
 ```
 
 ```{r}
@@ -67,4 +69,21 @@ tab1[,c(2,1)] %>%
 ```
 
 
+```{r eval = F}
+dig2 <- dig %>% 
+  mutate(
+    time = if_else(whfdays < deathday, whfdays, deathday),
+    event = if_else((whf | death), 1, 0),
+    ejf_25 = (ejf_per < 0.25),
+    ejf_25_45 = (ejf_per > 0.25 & ejf_per < 0.45),
+  )
+
+surv_object <- Surv(time = dig2$time, event = dig2$event)
+fit1 <- survfit(surv_object ~ trtmt, data = dig2)
+# summary(fit1)
+ggsurvplot(fit1, xlab = "Time", ylab = "Est. Survival Probability",
+           ylim = c(0,1), conf.int = T, censor = F)
+
+coxph(Surv(time, event) ~ ejf_25 + ejf_25_45, data = dig2) 
+```
 
