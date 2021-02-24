@@ -1,0 +1,16 @@
+---
+title: "Case 1 Extra Credit"
+author: "Ryan Hastings"
+date: "2/24/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning=F, message=F)
+require(tidyverse)
+```
+
+```{r}
+dig <- read_csv("dig.csv")
+```
+
