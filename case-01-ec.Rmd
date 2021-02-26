@@ -87,3 +87,70 @@ ggsurvplot(fit1, xlab = "Time", ylab = "Est. Survival Probability",
 coxph(Surv(time, event) ~ ejf_25 + ejf_25_45, data = dig2) 
 ```
 
+```{r echo = T}
+
+tab4 <- function(condition = "T") {
+  dig2 <- dig %>% 
+    filter(!! rlang::parse_expr(condition))
+  props <- dig2 %>% 
+    group_by(trtmt) %>% 
+    summarize(
+      n_whf = sum(dwhf),
+      n_total = n(),
+      pct_whf = round(n_whf/n_total * 100, 1)
+    )
+  props2 <- props[c(2,1),] %>% 
+    as.data.frame()
+  rownames(props2) <- c("Digoxin", "Placebo")
+  
+  test <- prop.test(x = props2$n_whf, n = props2$n_total,
+            alternative = "two.sided", correct=F)
+  
+  absdif <- round(c((test$estimate[1] - test$estimate[2]) * 100, test$conf.int * 100), 1) %>% as.data.frame()
+  rownames(absdif) <- c("Abs. Difference", "CI Low", "CI High")
+  
+  cox <- coxph(Surv(dwhfdays, dwhf) ~ trtmt, data = dig2) %>% summary()
+  rr <- cox$conf.int[c(1,3,4)] %>% 
+    round(2) %>% 
+    as.data.frame
+  rownames(rr) <- c("Risk Ratio", "CI Low", "CI High")
+  
+  return(list(props2, absdif, rr))
+}
+
+
+# Ejection fraction
+# 0.25-0.45
+tab4("ejf_per >= 25 & ejf_per <= 45")
+# <0.25
+tab4("ejf_per < 25")
+
+# Previous use of digoxin
+# Yes
+tab4("diguse == 1")
+# No
+tab4("diguse == 0")
+
+# Cause of heart failure
+# Ischemic
+tab4("chfetiol == 1")
+# Nonischemic
+tab4("chfetiol != 1")
+
+# Cardiothoracic ratio
+# <= 0.55
+tab4("chestx <= 0.55")
+# > 0.55
+tab4("chestx > 0.55")
+
+# NYHA class
+# I or II
+tab4("functcls %in% c(1,2)")
+# III or IV
+tab4("functcls %in% c(3,4)")
+
+# Overall Study Population
+tab4()
+```
+
+
