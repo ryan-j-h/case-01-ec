@@ -3,7 +3,17 @@ title: "Case 1 Extra Credit"
 author: "Ryan Hastings"
 date: "2/24/2021"
 output: pdf_document
+header-includes: 
+  - \usepackage{lscape}
 ---
+
+I was able to reproduce most of the values in Table 1. However, some are off by 
+a tenth of a percent or so. This is likely based on how missing values are dealt 
+with. It is unclear whether the authors drop missing values from the denominator 
+when calculating proportions.
+
+
+I was able to reproduce all the values in Table 4 perfectly.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F, warning=F, message=F)
@@ -87,11 +97,12 @@ ggsurvplot(fit1, xlab = "Time", ylab = "Est. Survival Probability",
 coxph(Surv(time, event) ~ ejf_25 + ejf_25_45, data = dig2) 
 ```
 
-```{r echo = T}
+```{r}
 
 tab4 <- function(condition = "T") {
   dig2 <- dig %>% 
     filter(!! rlang::parse_expr(condition))
+  
   props <- dig2 %>% 
     group_by(trtmt) %>% 
     summarize(
@@ -103,54 +114,68 @@ tab4 <- function(condition = "T") {
     as.data.frame()
   rownames(props2) <- c("Digoxin", "Placebo")
   
+  props_vec <- c(props2[1,2], props2[1,3], props2[1,4],
+                 props2[2,2], props2[2,3], props2[2,4])
+  
   test <- prop.test(x = props2$n_whf, n = props2$n_total,
             alternative = "two.sided", correct=F)
   
-  absdif <- round(c((test$estimate[1] - test$estimate[2]) * 100, test$conf.int * 100), 1) %>% as.data.frame()
-  rownames(absdif) <- c("Abs. Difference", "CI Low", "CI High")
+  absdif <- c((test$estimate[1] - test$estimate[2]) * 100, test$conf.int * 100) %>% 
+    round(1)
+  #rownames(absdif) <- c("Abs. Difference", "CI Low", "CI High")
   
   cox <- coxph(Surv(dwhfdays, dwhf) ~ trtmt, data = dig2) %>% summary()
   rr <- cox$conf.int[c(1,3,4)] %>% 
-    round(2) %>% 
-    as.data.frame
-  rownames(rr) <- c("Risk Ratio", "CI Low", "CI High")
+    round(2)
+  #rownames(rr) <- c("Risk Ratio", "CI Low", "CI High")
   
-  return(list(props2, absdif, rr))
+  vec <- c(props_vec, absdif, rr) %>%
+    as.data.frame() %>% 
+    t()
+  colnames(vec) <- c("N Digoxin", "N Digoxin Total", "Pct Digoxin", "N Placebo", 
+                     "N Placebo Total", "Pct Placebo", "Abs. Difference", 
+                     "CI Low", "CI High","Risk Ratio", "CI Low", "CI High")
+  
+  return(vec)
 }
 
+conditions <- c("ejf_per >= 25 & ejf_per <= 45", "ejf_per < 25", "diguse == 1", 
+                "diguse == 0", "chfetiol == 1", "chfetiol != 1", 
+                "chestx <= 0.55", "chestx > 0.55", "functcls %in% c(1,2)", 
+                "functcls %in% c(3,4)", "T")
+df <- tab4(conditions[1])
+for (cond in conditions[-1]) {
+  df <- rbind(df, tab4(cond))
+}
 
-# Ejection fraction
-# 0.25-0.45
-tab4("ejf_per >= 25 & ejf_per <= 45")
-# <0.25
-tab4("ejf_per < 25")
-
-# Previous use of digoxin
-# Yes
-tab4("diguse == 1")
-# No
-tab4("diguse == 0")
-
-# Cause of heart failure
-# Ischemic
-tab4("chfetiol == 1")
-# Nonischemic
-tab4("chfetiol != 1")
-
-# Cardiothoracic ratio
-# <= 0.55
-tab4("chestx <= 0.55")
-# > 0.55
-tab4("chestx > 0.55")
-
-# NYHA class
-# I or II
-tab4("functcls %in% c(1,2)")
-# III or IV
-tab4("functcls %in% c(3,4)")
-
-# Overall Study Population
-tab4()
+rownames(df) <- c("Ejection fraction 0.25-0.45",
+                  "Ejection fraction <0.25",
+                  "Previous digoxin - Yes",
+                  "Previous digoxin - No",
+                  "Cause - Ischemic",
+                  "Cause - Nonischemic",
+                  "Cardiothoracic ratio <=0.55",
+                  "Cardiothoracic ratio >0.55",
+                  "NYHA - I or II",
+                  "NYHA - III or IV",
+                  "Overall Study Population")
 ```
 
+\begin{landscape}
+```{r outtab4, results = 'asis'}
+rnames <- c("Ejection fraction 0.25-0.45",
+                  "Ejection fraction <0.25",
+                  "Previous digoxin - Yes",
+                  "Previous digoxin - No",
+                  "Cause - Ischemic",
+                  "Cause - Nonischemic",
+                  "Cardiothoracic ratio <=0.55",
+                  "Cardiothoracic ratio >0.55",
+                  "NYHA - I or II",
+                  "NYHA - III or IV",
+                  "Overall Study Population")
+stargazer(df, header = F, summary = F, digits = 2, rownames = T, 
+          font.size="tiny")
+```
+\end{landscape}
 
